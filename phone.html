@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CampusCam phone</title>
+<script src="https://unpkg.com/mqtt@5/dist/mqtt.min.js"></script>
+<style>
+:root{--bg:#0f1114;--panel:#1b1e23;--line:#2c3037;--fg:#e8e9ec;--mute:#9aa0aa;--acc:#3b82f6;--bad:#ef4444;--ok:#22c55e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:720px;margin:0 auto;padding:14px}
+h1{font-size:18px;margin:0 0 4px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button,select,input{font:inherit;color:var(--fg);background:#262a31;border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+button.primary{background:var(--acc);border-color:var(--acc);font-weight:600}
+button.big{width:100%;padding:16px;font-size:18px;margin:10px 0}
+video{width:100%;background:#000;border-radius:10px;aspect-ratio:16/9;object-fit:contain}
+.pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:12px;background:#333}
+.pill.on{background:var(--ok);color:#000}.pill.live{background:var(--bad)}.pill.err{background:var(--bad)}
+details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:12px}
+label{display:block;margin:10px 0 4px;color:var(--mute);font-size:12px}
+input{width:100%}
+.note{color:var(--mute);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="title">CampusCam phone</h1>
+  <div class="row"><span id="mq" class="pill">not connected</span><span id="viewers" class="pill">0 viewers</span><span id="res" class="note"></span></div>
+
+  <button id="btnStart" class="primary big">Start camera</button>
+  <video id="preview" autoplay playsinline muted></video>
+
+  <div class="row" style="margin-top:10px">
+    <label style="margin:0">Quality</label>
+    <select id="quality"><option value="1080">1080p</option><option value="720" selected>720p</option><option value="480">480p (weak network)</option></select>
+    <button id="btnFlip">Flip camera</button>
+    <button id="btnStop">Stop</button>
+  </div>
+  <p class="note">Put the phone in the holder in landscape, back camera facing forward. Keep this page open with the screen on, and plug in a power bank.</p>
+
+  <details id="setup">
+    <summary>Settings</summary>
+    <label>Campus number (1–4)</label><input id="sCampus" type="number" min="1" max="4" value="1">
+    <label>Broker WebSocket URL</label><input id="sUrl" placeholder="wss://xxxx.emqxsl.com:8084/mqtt">
+    <label>Username</label><input id="sUser">
+    <label>Password</label><input id="sPass" type="password">
+    <label>TURN relay (optional)</label>
+    <div class="row"><input id="tUrl" placeholder="turn:relay.example.com:3478" style="flex:2"><input id="tUser" placeholder="user" style="flex:1"><input id="tPass" placeholder="password" style="flex:1"></div>
+    <div class="row" style="margin-top:10px"><button id="btnSaveCfg" class="primary">Save and connect</button></div>
+  </details>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const LS='campuscam.phone';
+let cfg=loadCfg();
+function loadCfg(){
+  let c={url:'',user:'campuscam-console',pass:'',campus:1,name:'',turn:{url:'',user:'',pass:''}};
+  try{ Object.assign(c, JSON.parse(localStorage.getItem(LS)||'{}')); }catch(e){}
+  const m=location.hash.match(/cfg=([A-Za-z0-9_-]+)/);         // setup link from the console
+  if(m){
+    try{
+      const b=m[1].replace(/-/g,'+').replace(/_/g,'/'); const json=decodeURIComponent(escape(atob(b+'==='.slice((b.length+3)%4))));
+      Object.assign(c, JSON.parse(json));
+      try{ localStorage.setItem(LS, JSON.stringify(c)); }catch(e){}
+      history.replaceState(null,'',location.pathname);              // hide the password from the address bar
+    }catch(e){ console.warn('bad setup link',e); }
+  }
+  return c;
+}
+function saveCfg(){ try{ localStorage.setItem(LS, JSON.stringify(cfg)); }catch(e){} }
+function base(){ return `campus${cfg.campus}/video`; }
+function iceServers(){ const s=[{urls:'stun:stun.l.google.com:19302'}]; if(cfg.turn&&cfg.turn.url) s.push({urls:cfg.turn.url,username:cfg.turn.user,credential:cfg.turn.pass}); return s; }
+
+// ---------------------------------------------------------------- MQTT
+let client=null;
+function pill(t,c){ const p=$('mq'); p.textContent=t; p.className='pill '+(c||''); }
+function connect(){
+  if(client){ try{ client.end(true); }catch(e){} client=null; }
+  $('title').textContent = (cfg.name || ('Campus '+cfg.campus)) + ' · CampusCam phone';
+  if(!cfg.url){ pill('open Settings'); $('setup').open=true; return; }
+  pill('connecting…');
+  client=mqtt.connect(cfg.url,{username:cfg.user,password:cfg.pass,clientId:'campuscam-phone'+cfg.campus+'-'+Math.random().toString(36).slice(2,8),
+    clean:true,reconnectPeriod:3000,will:{topic:base()+'/status',payload:'offline',retain:true,qos:1}});
+  client.on('connect',()=>{
+    pill('connected','on');
+    client.subscribe(base()+'/to-phone');
+    pub('/status', stream?'online':'offline', true);
+    if(stream) publishInfo();
+  });
+  client.on('reconnect',()=>pill('reconnecting…'));
+  client.on('close',()=>pill('not connected'));
+  client.on('error',e=>pill('error: '+(e.message||e),'err'));
+  client.on('message',(t,b)=>{ try{ onMsg(JSON.parse(b.toString())); }catch(e){ console.warn(e); } });
+}
+function pub(sub,obj,retain){ if(client&&client.connected) client.publish(base()+sub, typeof obj==='string'?obj:JSON.stringify(obj),{qos:sub==='/status'?1:0,retain:!!retain}); }
+
+// ---------------------------------------------------------------- camera
+let stream=null, facing='environment', wakeLock=null;
+const Q={1080:[1920,1080],720:[1280,720],480:[854,480]};
+async function startCamera(){
+  const [w,h]=Q[$('quality').value];
+  const vc={facingMode:{ideal:facing},width:{ideal:w},height:{ideal:h},frameRate:{ideal:30}};
+  if(stream){
+    // free the old camera first: many phones cannot open two at once
+    stream.getVideoTracks().forEach(t=>{ t.stop(); stream.removeTrack(t); });
+    const s=await navigator.mediaDevices.getUserMedia({video:vc});
+    const vt=s.getVideoTracks()[0]; stream.addTrack(vt);
+    for(const p of peers.values()){ const snd=p.pc.getSenders().find(x=>x.track===null||(x.track&&x.track.kind==='video')); if(snd) await snd.replaceTrack(vt); }
+  } else {
+    stream=await navigator.mediaDevices.getUserMedia({video:vc,audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:true}});
+  }
+  $('preview').srcObject=stream;
+  keepAwake();
+  publishInfo();
+  pub('/status','online',true);
+  $('btnStart').textContent='Camera running'; $('btnStart').disabled=true;
+}
+function videoTrack(){ return stream && stream.getVideoTracks()[0]; }
+function publishInfo(){
+  const t=videoTrack(); if(!t) return;
+  const st=t.getSettings(), cap=t.getCapabilities?t.getCapabilities():{};
+  const info={width:st.width,height:st.height,facing,zoom:cap.zoom?{min:cap.zoom.min,max:cap.zoom.max,step:cap.zoom.step}:null,zoomNow:st.zoom||null};
+  $('res').textContent=`${st.width||'?'}x${st.height||'?'}${cap.zoom?` · zoom ${cap.zoom.min}–${cap.zoom.max}x`:''}`;
+  pub('/info',info,true);
+}
+async function setZoom(v){
+  const t=videoTrack(); if(!t) return;
+  try{ await t.applyConstraints({advanced:[{zoom:v}]}); publishInfo(); }catch(e){ console.warn('zoom not supported',e); }
+}
+async function keepAwake(){
+  try{ if('wakeLock' in navigator){ wakeLock=await navigator.wakeLock.request('screen'); } }catch(e){}
+}
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && stream) keepAwake(); });
+function stopCamera(){
+  for(const id of [...peers.keys()]) closePeer(id);
+  if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+  $('preview').srcObject=null;
+  pub('/status','offline',true);
+  $('btnStart').textContent='Start camera'; $('btnStart').disabled=false;
+  try{ wakeLock&&wakeLock.release(); }catch(e){}
+}
+
+// ---------------------------------------------------------------- WebRTC (one connection per console)
+const peers=new Map();
+function showViewers(){ const n=[...peers.values()].filter(p=>p.pc.connectionState==='connected').length; const v=$('viewers'); v.textContent=n+(n===1?' viewer':' viewers'); v.className='pill '+(n?'live':''); }
+function closePeer(id){ const p=peers.get(id); if(p){ try{p.pc.close();}catch(e){} peers.delete(id); } showViewers(); }
+async function newCall(id){
+  if(!stream) return;
+  closePeer(id);
+  const pc=new RTCPeerConnection({iceServers:iceServers()});
+  const p={pc,q:Promise.resolve()}; peers.set(id,p);
+  stream.getTracks().forEach(t=>pc.addTrack(t,stream));
+  pc.onicecandidate=e=>{ if(e.candidate) pub('/to-console/'+id,{type:'ice',candidate:e.candidate}); };
+  pc.onconnectionstatechange=()=>{ showViewers(); if(['failed','closed'].includes(pc.connectionState) && peers.get(id)===p) closePeer(id); };
+  const offer=await pc.createOffer(); await pc.setLocalDescription(offer);
+  pub('/to-console/'+id,{type:'offer',sdp:pc.localDescription.sdp});
+}
+function onMsg(m){
+  if(m.type==='call') return newCall(m.from);
+  if(m.type==='zoom') return setZoom(Number(m.value));
+  if(m.type==='flip'){ facing = facing==='environment'?'user':'environment'; return startCamera().catch(e=>alertBox(e)); }
+  const p=peers.get(m.from); if(!p) return;
+  p.q=p.q.then(async()=>{
+    if(m.type==='answer') await p.pc.setRemoteDescription({type:'answer',sdp:m.sdp});
+    else if(m.type==='ice' && m.candidate){ try{ await p.pc.addIceCandidate(m.candidate); }catch(e){} }
+  }).catch(e=>console.warn(e));
+}
+function alertBox(e){ pill('camera error: '+(e.message||e),'err'); }
+
+// ---------------------------------------------------------------- UI
+$('btnStart').onclick=()=>startCamera().catch(alertBox);
+$('btnStop').onclick=stopCamera;
+$('btnFlip').onclick=()=>{ facing = facing==='environment'?'user':'environment'; if(stream) startCamera().catch(alertBox); };
+$('quality').onchange=async()=>{
+  const t=videoTrack(); if(!t) return; const [w,h]=Q[$('quality').value];
+  try{ await t.applyConstraints({width:{ideal:w},height:{ideal:h}}); }catch(e){}
+  publishInfo();
+};
+function fillForm(){ $('sCampus').value=cfg.campus; $('sUrl').value=cfg.url; $('sUser').value=cfg.user; $('sPass').value=cfg.pass;
+  $('tUrl').value=cfg.turn.url||''; $('tUser').value=cfg.turn.user||''; $('tPass').value=cfg.turn.pass||''; }
+$('btnSaveCfg').onclick=()=>{
+  if(stream) pub('/status','offline',true);
+  cfg.campus=Math.min(4,Math.max(1,Number($('sCampus').value)||1)); cfg.url=$('sUrl').value.trim(); cfg.user=$('sUser').value.trim(); cfg.pass=$('sPass').value;
+  cfg.turn={url:$('tUrl').value.trim(),user:$('tUser').value.trim(),pass:$('tPass').value};
+  saveCfg(); $('setup').open=false; connect();
+};
+fillForm(); connect();
+</script>
+</body>
+</html>
