@@ -16,7 +16,7 @@
   --mute:#9aa0aa;
   --acc:#3b82f6;
   --bad:#ef4444;
-  --ok:#22c55e
+  --ok:#22c55e;
 }
 
 *{box-sizing:border-box}
@@ -25,25 +25,25 @@ body{
   margin:0;
   background:var(--bg);
   color:var(--fg);
-  font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif
+  font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
 }
 
 .wrap{
   max-width:900px;
   margin:0 auto;
-  padding:14px
+  padding:14px;
 }
 
 h1{
   font-size:18px;
-  margin:0 0 4px
+  margin:0 0 4px;
 }
 
 .row{
   display:flex;
   gap:8px;
   flex-wrap:wrap;
-  align-items:center
+  align-items:center;
 }
 
 button,select,input{
@@ -52,30 +52,29 @@ button,select,input{
   background:#262a31;
   border:1px solid var(--line);
   border-radius:10px;
-  padding:10px 14px
+  padding:10px 14px;
 }
 
 button.primary{
   background:var(--acc);
   border-color:var(--acc);
-  font-weight:600
+  font-weight:600;
 }
 
 button.big{
   width:100%;
   padding:16px;
   font-size:18px;
-  margin:10px 0
+  margin:10px 0;
 }
 
 button:disabled{
-  opacity:.6
+  opacity:.6;
 }
 
-/* Landscape video preview */
 .video-box{
   width:100%;
-  aspect-ratio:16 / 9;
+  aspect-ratio:16/9;
   background:#000;
   border-radius:10px;
   overflow:hidden;
@@ -86,7 +85,6 @@ video{
   display:block;
   width:100%;
   height:100%;
-  aspect-ratio:16 / 9;
   object-fit:contain;
   background:#000;
 }
@@ -96,16 +94,16 @@ video{
   padding:3px 10px;
   border-radius:99px;
   font-size:12px;
-  background:#333
+  background:#333;
 }
 
 .pill.on{
   background:var(--ok);
-  color:#000
+  color:#000;
 }
 
 .pill.live,.pill.err{
-  background:var(--bad)
+  background:var(--bad);
 }
 
 details{
@@ -113,30 +111,30 @@ details{
   border:1px solid var(--line);
   border-radius:10px;
   padding:10px 12px;
-  margin-top:12px
+  margin-top:12px;
 }
 
 label{
   display:block;
   margin:10px 0 4px;
   color:var(--mute);
-  font-size:12px
+  font-size:12px;
 }
 
 input{
-  width:100%
+  width:100%;
 }
 
 .note{
   color:var(--mute);
-  font-size:13px
+  font-size:13px;
 }
 
 #res{
-  margin-top:5px
+  margin-top:5px;
 }
 
-@media (max-width:600px){
+@media(max-width:600px){
   .wrap{padding:10px}
   .row.controls button{flex:1}
 }
@@ -161,6 +159,7 @@ input{
   </div>
 
   <div class="row controls" style="margin-top:10px">
+
     <label style="margin:0">Quality</label>
 
     <select id="quality">
@@ -171,12 +170,13 @@ input{
 
     <button id="btnFlip">Flip camera</button>
     <button id="btnStop">Stop</button>
+
   </div>
 
   <p class="note">
-    IMPORTANT: Place the phone horizontally (landscape) in the holder
-    before pressing Start camera. Use the back camera facing forward.
-    Keep this page open with the screen on and connect a power bank.
+    Place the phone horizontally in the holder, with the back camera
+    facing forward. Keep this page open with the screen on.
+    Connect a power bank for longer operation.
   </p>
 
   <details id="setup">
@@ -216,7 +216,11 @@ const LS = 'campuscam.phone';
 
 let cfg = loadCfg();
 
+// ----------------------------------------------------
+// CONFIGURATION
+
 function loadCfg(){
+
   let c = {
     url:'',
     user:'campuscam-console',
@@ -227,14 +231,20 @@ function loadCfg(){
   };
 
   try{
-    Object.assign(c,JSON.parse(localStorage.getItem(LS)||'{}'));
+    Object.assign(
+      c,
+      JSON.parse(localStorage.getItem(LS)||'{}')
+    );
   }catch(e){}
 
   const m = location.hash.match(/cfg=([A-Za-z0-9_-]+)/);
 
   if(m){
+
     try{
+
       const b = m[1].replace(/-/g,'+').replace(/_/g,'/');
+
       const json = decodeURIComponent(
         escape(atob(b+'==='.slice((b.length+3)%4)))
       );
@@ -248,7 +258,7 @@ function loadCfg(){
       history.replaceState(null,'',location.pathname);
 
     }catch(e){
-      console.warn('bad setup link',e);
+      console.warn('Bad setup link',e);
     }
   }
 
@@ -256,6 +266,7 @@ function loadCfg(){
 }
 
 function saveCfg(){
+
   try{
     localStorage.setItem(LS,JSON.stringify(cfg));
   }catch(e){}
@@ -266,9 +277,13 @@ function base(){
 }
 
 function iceServers(){
-  const s = [{urls:'stun:stun.l.google.com:19302'}];
+
+  const s = [
+    {urls:'stun:stun.l.google.com:19302'}
+  ];
 
   if(cfg.turn && cfg.turn.url){
+
     s.push({
       urls:cfg.turn.url,
       username:cfg.turn.user,
@@ -285,7 +300,9 @@ function iceServers(){
 let client = null;
 
 function pill(t,c){
+
   const p = $('mq');
+
   p.textContent = t;
   p.className = 'pill '+(c||'');
 }
@@ -293,26 +310,35 @@ function pill(t,c){
 function connect(){
 
   if(client){
-    try{client.end(true);}catch(e){}
+
+    try{
+      client.end(true);
+    }catch(e){}
+
     client = null;
   }
 
   $('title').textContent =
-    (cfg.name || ('Campus '+cfg.campus))+' · CampusCam phone';
+    (cfg.name || ('Campus '+cfg.campus))+
+    ' · CampusCam phone';
 
   if(!cfg.url){
+
     pill('open Settings');
     $('setup').open = true;
+
     return;
   }
 
   pill('connecting…');
 
   client = mqtt.connect(cfg.url,{
+
     username:cfg.user,
     password:cfg.pass,
 
-    clientId:'campuscam-phone'+cfg.campus+'-'+
+    clientId:
+      'campuscam-phone'+cfg.campus+'-'+
       Math.random().toString(36).slice(2,8),
 
     clean:true,
@@ -327,20 +353,32 @@ function connect(){
   });
 
   client.on('connect',()=>{
+
     pill('connected','on');
 
     client.subscribe(base()+'/to-phone');
 
     pub('/status',stream?'online':'offline',true);
 
-    if(stream) publishInfo();
+    if(stream){
+      publishInfo();
+    }
   });
 
-  client.on('reconnect',()=>pill('reconnecting…'));
-  client.on('close',()=>pill('not connected'));
-  client.on('error',e=>pill('error: '+(e.message||e),'err'));
+  client.on('reconnect',()=>{
+    pill('reconnecting…');
+  });
+
+  client.on('close',()=>{
+    pill('not connected');
+  });
+
+  client.on('error',e=>{
+    pill('error: '+(e.message||e),'err');
+  });
 
   client.on('message',(t,b)=>{
+
     try{
       onMsg(JSON.parse(b.toString()));
     }catch(e){
@@ -350,7 +388,9 @@ function connect(){
 }
 
 function pub(sub,obj,retain){
+
   if(client && client.connected){
+
     client.publish(
       base()+sub,
       typeof obj==='string'?obj:JSON.stringify(obj),
@@ -363,9 +403,21 @@ function pub(sub,obj,retain){
 }
 
 // ----------------------------------------------------
-// CAMERA: LANDSCAPE 16:9
+// CAMERA AND LANDSCAPE PROCESSING
 
 let stream = null;
+
+// Physical camera stream
+let cameraStream = null;
+
+// Canvas output stream, used only when source is portrait
+let landscapeStream = null;
+
+// Canvas processing variables
+let landscapeCanvas = null;
+let landscapeTimer = null;
+let cameraVideo = null;
+
 let facing = 'environment';
 let wakeLock = null;
 
@@ -375,56 +427,208 @@ const Q = {
   480:[854,480]
 };
 
-/*
-  Explicitly request landscape 16:9 video.
-  These are ideal constraints; the phone may select
-  another supported resolution.
-*/
-
 function cameraConstraints(){
 
   const [w,h] = Q[$('quality').value];
 
   return {
     facingMode:{ideal:facing},
-
-    width:{
-      ideal:w
-    },
-
-    height:{
-      ideal:h
-    },
-
-    aspectRatio:{
-      ideal:16/9
-    },
-
-    frameRate:{
-      ideal:30,
-      max:30
-    }
+    width:{ideal:w},
+    height:{ideal:h},
+    frameRate:{ideal:30,max:30}
   };
 }
 
+// Return the physical camera track.
+// Zoom is applied to this track, not the canvas output.
+
+function videoTrack(){
+
+  return cameraStream &&
+    cameraStream.getVideoTracks()[0];
+}
+
+// Stop only the canvas processing resources.
+
+function stopLandscapeProcessor(){
+
+  if(landscapeTimer){
+
+    clearInterval(landscapeTimer);
+    landscapeTimer = null;
+  }
+
+  if(landscapeStream){
+
+    landscapeStream.getTracks().forEach(t=>t.stop());
+    landscapeStream = null;
+  }
+
+  if(cameraVideo){
+
+    cameraVideo.pause();
+    cameraVideo.srcObject = null;
+    cameraVideo = null;
+  }
+
+  landscapeCanvas = null;
+}
+
+// Create a landscape output from a portrait camera.
+
+async function createLandscapeStream(sourceStream){
+
+  const sourceTrack = sourceStream.getVideoTracks()[0];
+
+  if(!sourceTrack){
+    throw new Error('Camera video track not found');
+  }
+
+  const settings = sourceTrack.getSettings();
+
+  const sourceWidth = settings.width || 720;
+  const sourceHeight = settings.height || 1280;
+
+  // No conversion needed if the physical camera is already landscape.
+
+  if(sourceWidth >= sourceHeight){
+
+    return sourceStream;
+  }
+
+  console.log(
+    'Portrait camera detected:',
+    sourceWidth+'x'+sourceHeight
+  );
+
+  // Create a 16:9 landscape canvas.
+
+  const canvas = document.createElement('canvas');
+
+  canvas.width = 1280;
+  canvas.height = 720;
+
+  landscapeCanvas = canvas;
+
+  const ctx = canvas.getContext('2d');
+
+  if(!ctx){
+    throw new Error('Could not create landscape canvas');
+  }
+
+  // Hidden video element receives the original camera stream.
+
+  cameraVideo = document.createElement('video');
+
+  cameraVideo.srcObject = sourceStream;
+  cameraVideo.muted = true;
+  cameraVideo.playsInline = true;
+
+  await cameraVideo.play();
+
+  // Wait until the browser knows the camera dimensions.
+
+  if(cameraVideo.readyState < 1){
+
+    await new Promise(resolve=>{
+      cameraVideo.addEventListener(
+        'loadedmetadata',
+        resolve,
+        {once:true}
+      );
+    });
+  }
+
+  function drawFrame(){
+
+    if(
+      !cameraVideo ||
+      cameraVideo.readyState < 2 ||
+      !cameraVideo.videoWidth ||
+      !cameraVideo.videoHeight
+    ){
+      return;
+    }
+
+    ctx.save();
+
+    // Rotate portrait video 90 degrees clockwise.
+
+    ctx.translate(canvas.width,0);
+    ctx.rotate(Math.PI/2);
+
+    // Draw using the original portrait dimensions.
+    // The rotation turns the 720x1280 image into 1280x720.
+
+    ctx.drawImage(
+      cameraVideo,
+      0,
+      0,
+      cameraVideo.videoWidth,
+      cameraVideo.videoHeight
+    );
+
+    ctx.restore();
+  }
+
+  // Draw the first frame.
+
+  drawFrame();
+
+  // Continue drawing at approximately 30 FPS.
+
+  landscapeTimer = setInterval(drawFrame,33);
+
+  // Capture the canvas as a video stream.
+
+  landscapeStream = canvas.captureStream(30);
+
+  // Keep original camera audio, if available.
+
+  const outputTracks = [
+    ...landscapeStream.getVideoTracks(),
+    ...sourceStream.getAudioTracks()
+  ];
+
+  return new MediaStream(outputTracks);
+}
+
+// ----------------------------------------------------
+// START CAMERA
+
 async function startCamera(){
 
-  if(!navigator.mediaDevices ||
-     !navigator.mediaDevices.getUserMedia){
+  if(
+    !navigator.mediaDevices ||
+    !navigator.mediaDevices.getUserMedia
+  ){
+
     throw new Error(
-      'Camera access requires HTTPS. Open CampusCam using its HTTPS website.'
+      'Camera access requires HTTPS. Open the CampusCam HTTPS website.'
     );
   }
 
-  const oldStream = stream;
+  // Stop previous canvas processor.
 
-  // Stop old camera before opening the new camera.
-  if(oldStream){
-    oldStream.getTracks().forEach(t=>t.stop());
+  stopLandscapeProcessor();
+
+  // Stop previous physical camera.
+
+  if(cameraStream){
+
+    cameraStream.getTracks().forEach(t=>t.stop());
+
+    cameraStream = null;
   }
 
-  const newStream = await navigator.mediaDevices.getUserMedia({
+  stream = null;
+
+  // Request camera.
+
+  cameraStream = await navigator.mediaDevices.getUserMedia({
+
     video:cameraConstraints(),
+
     audio:{
       echoCancellation:false,
       noiseSuppression:false,
@@ -432,17 +636,20 @@ async function startCamera(){
     }
   });
 
-  stream = newStream;
+  // Convert portrait source to landscape when necessary.
+
+  stream = await createLandscapeStream(cameraStream);
+
+  // Show the processed stream on the phone preview.
 
   $('preview').srcObject = stream;
 
-  try{
-    await $('preview').play();
-  }catch(e){
-    console.warn('Preview play issue:',e);
-  }
+  await $('preview').play().catch(e=>{
+    console.warn('Preview playback issue:',e);
+  });
 
-  // Replace camera tracks in existing WebRTC connections.
+  // Replace video/audio tracks in existing WebRTC connections.
+
   for(const p of peers.values()){
 
     const senders = p.pc.getSenders();
@@ -451,12 +658,15 @@ async function startCamera(){
 
       const kind = sender.track ? sender.track.kind : null;
 
-      if(kind){
-        const newTrack = stream.getTracks().find(t=>t.kind===kind);
+      if(!kind) continue;
 
-        if(newTrack){
-          await sender.replaceTrack(newTrack);
-        }
+      const newTrack = stream.getTracks().find(
+        t=>t.kind===kind
+      );
+
+      if(newTrack){
+
+        await sender.replaceTrack(newTrack);
       }
     }
   }
@@ -471,55 +681,92 @@ async function startCamera(){
   $('btnStart').disabled = true;
 }
 
-function videoTrack(){
-  return stream && stream.getVideoTracks()[0];
-}
+// ----------------------------------------------------
+// CAMERA INFORMATION
 
 function publishInfo(){
 
-  const t = videoTrack();
+  const physicalTrack = videoTrack();
 
-  if(!t) return;
+  if(!physicalTrack) return;
 
-  const st = t.getSettings();
-  const cap = t.getCapabilities ? t.getCapabilities() : {};
+  const sourceSettings = physicalTrack.getSettings();
 
-  const width = st.width || 0;
-  const height = st.height || 0;
+  const outputTrack = stream &&
+    stream.getVideoTracks()[0];
 
-  const isLandscape = width > height;
+  const outputSettings = outputTrack
+    ? outputTrack.getSettings()
+    : {};
+
+  const cap = physicalTrack.getCapabilities
+    ? physicalTrack.getCapabilities()
+    : {};
+
+  const width = outputSettings.width || 1280;
+  const height = outputSettings.height || 720;
+
+  const sourceWidth = sourceSettings.width || 0;
+  const sourceHeight = sourceSettings.height || 0;
+
+  const isLandscape = width >= height;
 
   const info = {
+
     width:width,
     height:height,
-    aspectRatio:st.aspectRatio || null,
-    orientation:isLandscape?'landscape':'portrait',
+
+    aspectRatio:width/height,
+
+    orientation:isLandscape
+      ? 'landscape'
+      : 'portrait',
+
+    sourceWidth:sourceWidth,
+    sourceHeight:sourceHeight,
+
+    sourceOrientation:
+      sourceWidth >= sourceHeight
+        ? 'landscape'
+        : 'portrait',
+
     facing:facing,
-    zoom:cap.zoom ? {
-      min:cap.zoom.min,
-      max:cap.zoom.max,
-      step:cap.zoom.step
-    } : null,
-    zoomNow:st.zoom || null
+
+    zoom:cap.zoom
+      ? {
+          min:cap.zoom.min,
+          max:cap.zoom.max,
+          step:cap.zoom.step
+        }
+      : null,
+
+    zoomNow:sourceSettings.zoom || null
   };
 
-  $('res').textContent =
-    `${width||'?'}x${height||'?'} · `+
-    (isLandscape?'LANDSCAPE':'PORTRAIT SOURCE')+
-    (cap.zoom?` · zoom ${cap.zoom.min}–${cap.zoom.max}x`:'');
+  const sourceNote =
+    sourceWidth < sourceHeight
+      ? ' · rotated from portrait'
+      : '';
 
-  $('res').style.color = isLandscape ? '#22c55e' : '#ef4444';
+  $('res').textContent =
+    `${width}x${height} · `+
+    (isLandscape?'LANDSCAPE':'PORTRAIT')+
+    sourceNote+
+    (cap.zoom
+      ? ` · zoom ${cap.zoom.min}–${cap.zoom.max}x`
+      : '');
+
+  $('res').style.color =
+    isLandscape ? '#22c55e' : '#ef4444';
 
   pub('/info',info,true);
 
-  console.log('CampusCam camera settings:',st);
-
-  if(!isLandscape){
-    console.warn(
-      'The camera is still producing portrait video. Rotate the phone horizontally and restart the camera.'
-    );
-  }
+  console.log('Physical camera:',sourceSettings);
+  console.log('Output video:',info);
 }
+
+// ----------------------------------------------------
+// ZOOM
 
 async function setZoom(v){
 
@@ -528,6 +775,7 @@ async function setZoom(v){
   if(!t) return;
 
   try{
+
     await t.applyConstraints({
       advanced:[{zoom:v}]
     });
@@ -535,24 +783,39 @@ async function setZoom(v){
     publishInfo();
 
   }catch(e){
-    console.warn('zoom not supported',e);
+
+    console.warn('Zoom not supported:',e);
   }
 }
+
+// ----------------------------------------------------
+// KEEP SCREEN AWAKE
 
 async function keepAwake(){
 
   try{
+
     if('wakeLock' in navigator){
+
       wakeLock = await navigator.wakeLock.request('screen');
     }
+
   }catch(e){}
 }
 
 document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='visible' && stream){
+
+  if(
+    document.visibilityState==='visible' &&
+    stream
+  ){
+
     keepAwake();
   }
 });
+
+// ----------------------------------------------------
+// STOP CAMERA
 
 function stopCamera(){
 
@@ -560,14 +823,20 @@ function stopCamera(){
     closePeer(id);
   }
 
-  if(stream){
-    stream.getTracks().forEach(t=>t.stop());
-    stream = null;
+  pub('/status','offline',true);
+
+  stopLandscapeProcessor();
+
+  if(cameraStream){
+
+    cameraStream.getTracks().forEach(t=>t.stop());
+
+    cameraStream = null;
   }
 
-  $('preview').srcObject = null;
+  stream = null;
 
-  pub('/status','offline',true);
+  $('preview').srcObject = null;
 
   $('btnStart').textContent = 'Start camera';
   $('btnStart').disabled = false;
@@ -575,7 +844,12 @@ function stopCamera(){
   $('res').textContent = '';
 
   try{
-    wakeLock && wakeLock.release();
+
+    if(wakeLock){
+      wakeLock.release();
+      wakeLock = null;
+    }
+
   }catch(e){}
 }
 
@@ -592,7 +866,9 @@ function showViewers(){
 
   const v = $('viewers');
 
-  v.textContent = n+(n===1?' viewer':' viewers');
+  v.textContent =
+    n+(n===1?' viewer':' viewers');
+
   v.className = 'pill '+(n?'live':'');
 }
 
@@ -601,7 +877,11 @@ function closePeer(id){
   const p = peers.get(id);
 
   if(p){
-    try{p.pc.close();}catch(e){}
+
+    try{
+      p.pc.close();
+    }catch(e){}
+
     peers.delete(id);
   }
 
@@ -630,7 +910,9 @@ async function newCall(id){
   });
 
   pc.onicecandidate = e=>{
+
     if(e.candidate){
+
       pub('/to-console/'+id,{
         type:'ice',
         candidate:e.candidate
@@ -646,6 +928,7 @@ async function newCall(id){
       ['failed','closed'].includes(pc.connectionState) &&
       peers.get(id)===p
     ){
+
       closePeer(id);
     }
   };
@@ -663,16 +946,21 @@ async function newCall(id){
 function onMsg(m){
 
   if(m.type==='call'){
+
     return newCall(m.from);
   }
 
   if(m.type==='zoom'){
+
     return setZoom(Number(m.value));
   }
 
   if(m.type==='flip'){
 
-    facing = facing==='environment'?'user':'environment';
+    facing =
+      facing==='environment'
+        ? 'user'
+        : 'environment';
 
     if(stream){
       return startCamera().catch(alertBox);
@@ -688,6 +976,7 @@ function onMsg(m){
   p.q = p.q.then(async()=>{
 
     if(m.type==='answer'){
+
       await p.pc.setRemoteDescription({
         type:'answer',
         sdp:m.sdp
@@ -704,35 +993,45 @@ function onMsg(m){
   }).catch(e=>console.warn(e));
 }
 
+// ----------------------------------------------------
+// ERROR DISPLAY
+
 function alertBox(e){
 
   console.error(e);
 
-  pill('camera error: '+(e.message||e),'err');
+  pill(
+    'camera error: '+(e.message||e),
+    'err'
+  );
 
   $('btnStart').textContent = 'Start camera';
   $('btnStart').disabled = false;
 }
 
 // ----------------------------------------------------
-// UI CONTROLS
+// BUTTONS
 
 $('btnStart').onclick = ()=>{
 
   startCamera().catch(alertBox);
-
 };
 
 $('btnStop').onclick = stopCamera;
 
 $('btnFlip').onclick = ()=>{
 
-  facing = facing==='environment'?'user':'environment';
+  facing =
+    facing==='environment'
+      ? 'user'
+      : 'environment';
 
   if(stream){
     startCamera().catch(alertBox);
   }
 };
+
+// Change camera quality.
 
 $('quality').onchange = async()=>{
 
@@ -743,7 +1042,18 @@ $('quality').onchange = async()=>{
   try{
 
     await t.applyConstraints({
-      ...cameraConstraints()
+      width:{
+        ideal:Q[$('quality').value][0]
+      },
+
+      height:{
+        ideal:Q[$('quality').value][1]
+      },
+
+      frameRate:{
+        ideal:30,
+        max:30
+      }
     });
 
     publishInfo();
@@ -751,8 +1061,6 @@ $('quality').onchange = async()=>{
   }catch(e){
 
     console.warn('Could not change camera quality:',e);
-
-    alertBox(e);
   }
 };
 
@@ -798,6 +1106,9 @@ $('btnSaveCfg').onclick = ()=>{
 
   connect();
 };
+
+// ----------------------------------------------------
+// INITIALIZE
 
 fillForm();
 connect();
