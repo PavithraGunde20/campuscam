@@ -474,6 +474,7 @@ function stopLandscapeProcessor(){
   landscapeCanvas = null;
 }
 
+
 // Create a landscape output from a portrait camera.
 
 async function createLandscapeStream(sourceStream){
@@ -489,16 +490,16 @@ async function createLandscapeStream(sourceStream){
   const sourceWidth = settings.width || 720;
   const sourceHeight = settings.height || 1280;
 
-  // No conversion needed if the physical camera is already landscape.
+  // If the physical camera is already landscape,
+  // use its original stream without conversion.
 
   if(sourceWidth >= sourceHeight){
-
     return sourceStream;
   }
 
   console.log(
     'Portrait camera detected:',
-    sourceWidth+'x'+sourceHeight
+    sourceWidth + 'x' + sourceHeight
   );
 
   // Create a 16:9 landscape canvas.
@@ -526,16 +527,22 @@ async function createLandscapeStream(sourceStream){
 
   await cameraVideo.play();
 
-  // Wait until the browser knows the camera dimensions.
+  // Wait for camera dimensions.
 
-  if(cameraVideo.readyState < 1){
+  if(
+    cameraVideo.readyState < 2 ||
+    !cameraVideo.videoWidth ||
+    !cameraVideo.videoHeight
+  ){
 
     await new Promise(resolve=>{
+
       cameraVideo.addEventListener(
-        'loadedmetadata',
+        'loadeddata',
         resolve,
         {once:true}
       );
+
     });
   }
 
@@ -552,13 +559,22 @@ async function createLandscapeStream(sourceStream){
 
     ctx.save();
 
-    // Rotate portrait video 90 degrees clockwise.
+    // Clear the previous frame.
 
-    ctx.translate(canvas.width,0);
-    ctx.rotate(Math.PI/2);
+    ctx.clearRect(
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
 
-    // Draw using the original portrait dimensions.
-    // The rotation turns the 720x1280 image into 1280x720.
+    // UPDATED ROTATION:
+    // Rotate portrait video 90 degrees counterclockwise.
+
+    ctx.translate(0, canvas.height);
+    ctx.rotate(-Math.PI / 2);
+
+    // Draw the original portrait camera frame.
 
     ctx.drawImage(
       cameraVideo,
@@ -571,27 +587,31 @@ async function createLandscapeStream(sourceStream){
     ctx.restore();
   }
 
-  // Draw the first frame.
+  // Draw initial frame.
 
   drawFrame();
 
   // Continue drawing at approximately 30 FPS.
 
-  landscapeTimer = setInterval(drawFrame,33);
+  landscapeTimer = setInterval(drawFrame, 33);
 
-  // Capture the canvas as a video stream.
+  // Capture the landscape canvas.
 
   landscapeStream = canvas.captureStream(30);
 
-  // Keep original camera audio, if available.
+  // Preserve original camera audio.
 
   const outputTracks = [
+
     ...landscapeStream.getVideoTracks(),
+
     ...sourceStream.getAudioTracks()
+
   ];
 
   return new MediaStream(outputTracks);
 }
+
 
 // ----------------------------------------------------
 // START CAMERA
