@@ -1,334 +1,1205 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CampusCam console</title>
+<title>CampusCam - Campus 1 Console</title>
 <script src="https://unpkg.com/mqtt@5/dist/mqtt.min.js"></script>
+
 <style>
-:root{--bg:#111316;--panel:#1b1e23;--line:#2c3037;--fg:#e8e9ec;--mute:#9aa0aa;--acc:#3b82f6;--ok:#22c55e;--bad:#ef4444;--warn:#f59e0b}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-header{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line)}
-header h1{font-size:17px;margin:0;flex:1}
-.pill{padding:3px 10px;border-radius:99px;font-size:12px;background:#333;color:#ccc}
-.pill.on{background:var(--acc);color:#fff}.pill.err{background:var(--bad);color:#fff}
-button,select,input{font:inherit;color:var(--fg);background:#262a31;border:1px solid var(--line);border-radius:8px;padding:6px 10px}
-button{cursor:pointer}button:hover{border-color:#4a505a}
-button.primary{background:var(--acc);border-color:var(--acc)}
-button.danger{background:#5a1d1d;border-color:#7a2a2a}
-button.rec{background:var(--bad);border-color:var(--bad)}
-main{display:grid;grid-template-columns:1fr 330px;gap:14px;padding:14px;height:calc(100vh - 53px)}
-@media(max-width:1000px){main{grid-template-columns:1fr;height:auto}}
-#grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;min-height:0}
-.tile{position:relative;background:#000;border:2px solid var(--line);border-radius:10px;overflow:hidden;cursor:pointer;min-height:160px}
-.tile.sel{border-color:var(--acc)}
-.tile video{width:100%;height:100%;object-fit:contain;display:block}
-.tile .lab{position:absolute;left:8px;top:8px;display:flex;gap:6px;align-items:center}
-.tile .name{background:rgba(0,0,0,.6);padding:2px 8px;border-radius:6px;font-weight:600}
-.tag{font-size:11px;padding:2px 7px;border-radius:5px;background:#444}
-.tag.live{background:var(--bad)}.tag.on{background:#1f5133}.tag.off{background:#444}
-.tile .info{position:absolute;left:8px;bottom:8px;right:8px;display:flex;justify-content:space-between;font-size:12px;color:#ddd;text-shadow:0 1px 2px #000}
-.tile .empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--mute)}
-aside{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;overflow:auto}
-aside h2{font-size:15px;margin:0 0 10px}
-aside h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:16px 0 8px}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-#joy{width:200px;height:200px;border-radius:50%;background:#14171b;border:2px solid var(--line);position:relative;margin:4px auto;touch-action:none}
-#knob{width:60px;height:60px;border-radius:50%;background:var(--acc);position:absolute;left:70px;top:70px;box-shadow:0 2px 8px #0008}
-.nud{display:grid;grid-template-columns:repeat(3,44px);gap:6px;justify-content:center}
-.preset{display:flex;gap:6px;margin-bottom:6px}.preset button:first-child{flex:1;text-align:left}
-.stat{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:13px}.stat span:nth-child(odd){color:var(--mute)}
-input[type=range]{width:100%}
-dialog{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:12px;max-width:620px;width:94vw}
-dialog label{display:block;margin:10px 0 4px;color:var(--mute);font-size:12px}
-dialog input{width:100%}
-.links input{font-size:11px}
-.note{font-size:12px;color:var(--mute)}
+:root {
+  --bg:#111316;
+  --panel:#1b1e23;
+  --line:#2c3037;
+  --fg:#e8e9ec;
+  --mute:#9aa0aa;
+  --acc:#3b82f6;
+  --ok:#22c55e;
+  --bad:#ef4444;
+}
+
+* { box-sizing:border-box; }
+
+body {
+  margin:0;
+  background:var(--bg);
+  color:var(--fg);
+  font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+}
+
+header {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 16px;
+  border-bottom:1px solid var(--line);
+}
+
+header h1 {
+  font-size:17px;
+  margin:0;
+  flex:1;
+}
+
+.pill {
+  padding:3px 10px;
+  border-radius:99px;
+  font-size:12px;
+  background:#333;
+  color:#ccc;
+}
+
+.pill.on { background:var(--acc);color:#fff; }
+.pill.err { background:var(--bad);color:#fff; }
+
+button,select,input {
+  font:inherit;
+  color:var(--fg);
+  background:#262a31;
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:6px 10px;
+}
+
+button { cursor:pointer; }
+button:hover { border-color:#4a505a; }
+button.primary { background:var(--acc);border-color:var(--acc); }
+button.danger { background:#5a1d1d;border-color:#7a2a2a; }
+button.rec { background:var(--bad);border-color:var(--bad); }
+
+main {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 330px;
+  gap:14px;
+  padding:14px;
+  height:calc(100vh - 53px);
+  min-height:500px;
+}
+
+/* Single landscape video panel */
+#grid {
+  display:block;
+  min-width:0;
+  min-height:0;
+}
+
+.tile {
+  position:relative;
+  width:100%;
+  aspect-ratio:16/9;
+  background:#000;
+  border:2px solid var(--line);
+  border-radius:10px;
+  overflow:hidden;
+  cursor:pointer;
+}
+
+.tile.sel { border-color:var(--acc); }
+
+.tile video {
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  display:block;
+  background:#000;
+}
+
+.tile .lab {
+  position:absolute;
+  left:8px;
+  top:8px;
+  display:flex;
+  gap:6px;
+  align-items:center;
+}
+
+.tile .name {
+  background:rgba(0,0,0,.6);
+  padding:2px 8px;
+  border-radius:6px;
+  font-weight:600;
+}
+
+.tag {
+  font-size:11px;
+  padding:2px 7px;
+  border-radius:5px;
+  background:#444;
+}
+
+.tag.live { background:var(--bad); }
+.tag.on { background:#1f5133; }
+.tag.off { background:#444; }
+
+.tile .info {
+  position:absolute;
+  left:8px;
+  bottom:8px;
+  right:8px;
+  display:flex;
+  justify-content:space-between;
+  font-size:12px;
+  color:#ddd;
+  text-shadow:0 1px 2px #000;
+}
+
+.tile .empty {
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--mute);
+}
+
+aside {
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:14px;
+  overflow:auto;
+  min-width:0;
+}
+
+aside h2 { font-size:15px;margin:0 0 10px; }
+
+aside h3 {
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:var(--mute);
+  margin:16px 0 8px;
+}
+
+.row {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+
+#joy {
+  width:200px;
+  height:200px;
+  border-radius:50%;
+  background:#14171b;
+  border:2px solid var(--line);
+  position:relative;
+  margin:4px auto;
+  touch-action:none;
+}
+
+#knob {
+  width:60px;
+  height:60px;
+  border-radius:50%;
+  background:var(--acc);
+  position:absolute;
+  left:70px;
+  top:70px;
+  box-shadow:0 2px 8px #0008;
+}
+
+.nud {
+  display:grid;
+  grid-template-columns:repeat(3,44px);
+  gap:6px;
+  justify-content:center;
+}
+
+.preset {
+  display:flex;
+  gap:6px;
+  margin-bottom:6px;
+}
+
+.preset button:first-child {
+  flex:1;
+  text-align:left;
+}
+
+.stat {
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:2px 10px;
+  font-size:13px;
+}
+
+.stat span:nth-child(odd) { color:var(--mute); }
+input[type=range] { width:100%; }
+
+dialog {
+  background:var(--panel);
+  color:var(--fg);
+  border:1px solid var(--line);
+  border-radius:12px;
+  max-width:620px;
+  width:94vw;
+}
+
+dialog label {
+  display:block;
+  margin:10px 0 4px;
+  color:var(--mute);
+  font-size:12px;
+}
+
+dialog input { width:100%; }
+.links input { font-size:11px; }
+.note { font-size:12px;color:var(--mute); }
+
+/* Mobile and narrow-screen layout */
+@media(max-width:1000px) {
+  main {
+    grid-template-columns:1fr;
+    height:auto;
+    min-height:0;
+  }
+
+  #grid { width:100%; }
+
+  aside { width:100%; }
+
+  .tile { width:100%; }
+}
 </style>
 </head>
+
 <body>
+
 <header>
-  <h1>CampusCam console</h1>
+  <h1>CampusCam Console - Campus 1</h1>
   <span id="pill" class="pill">not connected</span>
   <button id="btnSettings">Settings</button>
 </header>
+
 <main>
-  <section id="grid"></section>
+
+  <!-- CAMPUS 1 LANDSCAPE VIDEO ONLY -->
+  <section id="grid">
+    <div class="tile sel" id="tile0">
+      <video autoplay playsinline muted></video>
+
+      <div class="empty">Waiting for Campus 1 video...</div>
+
+      <div class="lab">
+        <span class="name">Campus 1</span>
+        <span class="tag vid off">phone offline</span>
+        <span class="tag head off">head offline</span>
+      </div>
+
+      <div class="info">
+        <span class="pos"></span>
+        <span class="bat"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CAMPUS 1 OPERATING PANEL - RIGHT SIDE -->
   <aside>
+
     <h2 id="selTitle">Campus 1</h2>
     <div class="stat" id="stat"></div>
 
     <h3>Move</h3>
-    <div id="joy"><div id="knob"></div></div>
+
+    <div id="joy">
+      <div id="knob"></div>
+    </div>
+
     <div class="nud">
       <span></span><button data-n="0,2">▲</button><span></span>
-      <button data-n="-5,0">◀</button><button id="btnHome">⌂</button><button data-n="5,0">▶</button>
+      <button data-n="-5,0">◀</button>
+      <button id="btnHome">⌂</button>
+      <button data-n="5,0">▶</button>
       <span></span><button data-n="0,-2">▼</button><span></span>
     </div>
+
     <div class="row" style="margin-top:10px">
-      <select id="speed"><option value="slow">Slow 12°/s</option><option value="medium" selected>Medium 35°/s</option><option value="fast">Fast 90°/s</option></select>
+      <select id="speed">
+        <option value="slow">Slow 12°/s</option>
+        <option value="medium" selected>Medium 35°/s</option>
+        <option value="fast">Fast 90°/s</option>
+      </select>
+
       <button id="btnStop" class="danger">Stop</button>
-      <button id="btnZero" title="Make the current position 0, 0">Set zero</button>
+      <button id="btnZero" title="Make current position 0, 0">Set zero</button>
       <button id="btnRelease" title="Motor power off / on">Release</button>
     </div>
 
     <h3>Presets</h3>
     <div id="presets"></div>
-    <div class="row"><input id="presetName" placeholder="name, e.g. stage" maxlength="10" style="flex:1"><button id="btnSave">Save here</button></div>
+
+    <div class="row">
+      <input id="presetName" placeholder="name, e.g. stage"
+             maxlength="10" style="flex:1">
+      <button id="btnSave">Save here</button>
+    </div>
 
     <h3>Phone camera</h3>
+
     <label class="note">Zoom <span id="zoomVal"></span></label>
-    <input id="zoom" type="range" min="1" max="1" step="0.1" value="1" disabled>
+    <input id="zoom" type="range" min="1" max="1"
+           step="0.1" value="1" disabled>
+
     <div class="row" style="margin-top:8px">
       <button id="btnFlip">Flip camera</button>
       <button id="btnRecall">Reconnect video</button>
     </div>
+
     <div class="row" style="margin-top:8px">
       <button id="btnRec">● Record</button>
       <button id="btnSnap">Snapshot</button>
     </div>
+
     <p class="note" id="recNote"></p>
+
   </aside>
 </main>
 
+<!-- SETTINGS -->
 <dialog id="dlg">
-  <h2 style="margin-top:0">Settings</h2>
+
+  <h2 style="margin-top:0">Campus 1 Settings</h2>
+
   <label>Broker WebSocket URL</label>
   <input id="sUrl" placeholder="wss://xxxx.emqxsl.com:8084/mqtt">
-  <div class="row"><div style="flex:1"><label>Username</label><input id="sUser" placeholder="campuscam-console"></div>
-  <div style="flex:1"><label>Password</label><input id="sPass" type="password"></div></div>
-  <label>Campus names</label>
-  <div class="row"><input id="n1" style="flex:1"><input id="n2" style="flex:1"><input id="n3" style="flex:1"><input id="n4" style="flex:1"></div>
-  <label>TURN relay (optional, only if video stays "connecting")</label>
-  <div class="row"><input id="tUrl" placeholder="turn:relay.example.com:3478" style="flex:2"><input id="tUser" placeholder="user" style="flex:1"><input id="tPass" placeholder="password" style="flex:1"></div>
-  <label>Phone setup links (send each privately: they contain the password)</label>
-  <div class="links" id="links"></div>
-  <div class="row" style="margin-top:16px;justify-content:flex-end">
-    <button id="dlgClose">Cancel</button><button id="dlgSave" class="primary">Save and connect</button>
+
+  <div class="row">
+    <div style="flex:1">
+      <label>Username</label>
+      <input id="sUser" placeholder="campuscam-console">
+    </div>
+
+    <div style="flex:1">
+      <label>Password</label>
+      <input id="sPass" type="password">
+    </div>
   </div>
+
+  <label>Campus name</label>
+  <input id="n1" value="Campus 1">
+
+  <label>TURN relay (optional, only if video stays connecting)</label>
+
+  <div class="row">
+    <input id="tUrl" placeholder="turn:relay.example.com:3478"
+           style="flex:2">
+    <input id="tUser" placeholder="user" style="flex:1">
+    <input id="tPass" placeholder="password" style="flex:1">
+  </div>
+
+  <label>Campus 1 phone setup link (send privately)</label>
+  <div class="links" id="links"></div>
+
+  <div class="row" style="margin-top:16px;justify-content:flex-end">
+    <button id="dlgClose">Cancel</button>
+    <button id="dlgSave" class="primary">Save and connect</button>
+  </div>
+
 </dialog>
 
 <script>
-// ---------------------------------------------------------------- settings
+
+// --------------------------------------------------
+// SETTINGS
+// --------------------------------------------------
+
 const LS = 'campuscam.console';
+
+function defaults() {
+  return {
+    url:'',
+    user:'campuscam-console',
+    pass:'',
+    names:['Campus 1'],
+    turn:{url:'',user:'',pass:''}
+  };
+}
+
+function load() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LS)||'{}');
+    const d = defaults();
+
+    return {
+      ...d,
+      ...saved,
+      names:[saved.names?.[0] || 'Campus 1'],
+      turn:{...d.turn,...saved.turn}
+    };
+  } catch(e) {
+    return defaults();
+  }
+}
+
 let cfg = load();
-function load(){ try{ return Object.assign(defaults(), JSON.parse(localStorage.getItem(LS)||'{}')); }catch(e){ return defaults(); } }
-function defaults(){ return {url:'',user:'campuscam-console',pass:'',names:['Campus 1','Campus 2','Campus 3','Campus 4'],turn:{url:'',user:'',pass:''}}; }
-function save(){ try{ localStorage.setItem(LS, JSON.stringify(cfg)); }catch(e){} }
+
+function save() {
+  try {
+    localStorage.setItem(LS,JSON.stringify(cfg));
+  } catch(e) {}
+}
+
 const $ = id => document.getElementById(id);
+
 const myId = 'c' + Math.random().toString(36).slice(2,10);
 
-function iceServers(){
-  const s=[{urls:'stun:stun.l.google.com:19302'}];
-  if(cfg.turn.url) s.push({urls:cfg.turn.url, username:cfg.turn.user, credential:cfg.turn.pass});
+// --------------------------------------------------
+// WEBRTC CONFIGURATION
+// --------------------------------------------------
+
+function iceServers() {
+  const s = [{urls:'stun:stun.l.google.com:19302'}];
+
+  if(cfg.turn.url) {
+    s.push({
+      urls:cfg.turn.url,
+      username:cfg.turn.user,
+      credential:cfg.turn.pass
+    });
+  }
+
   return s;
 }
 
-// ---------------------------------------------------------------- campus state
-const C = [1,2,3,4].map(n => ({n, head:'offline', state:null, presets:[], phone:'offline', info:null, pc:null, stream:null, rtc:'—'}));
-let sel = 0;
+// --------------------------------------------------
+// CAMPUS 1 STATE ONLY
+// --------------------------------------------------
+
+const C = [{
+  n:1,
+  head:'offline',
+  state:null,
+  presets:[],
+  phone:'offline',
+  info:null,
+  pc:null,
+  stream:null,
+  rtc:'—'
+}];
+
+const sel = 0;
 
 const grid = $('grid');
-C.forEach((c,i)=>{
-  const t = document.createElement('div'); t.className='tile'; t.id='tile'+i;
-  t.innerHTML = `<video autoplay playsinline muted></video><div class="empty">No video</div>
-    <div class="lab"><span class="name"></span><span class="tag vid off">phone offline</span><span class="tag head off">head offline</span></div>
-    <div class="info"><span class="pos"></span><span class="bat"></span></div>`;
-  t.onclick=()=>select(i);
-  grid.appendChild(t);
-});
-function tile(i){ return $('tile'+i); }
-function select(i){ sel=i; render(); }
 
-function render(){
-  C.forEach((c,i)=>{
-    const t=tile(i); t.classList.toggle('sel', i===sel);
-    t.querySelector('.name').textContent=cfg.names[i]||('Campus '+c.n);
-    const v=t.querySelector('.vid');
-    const live = c.rtc==='connected';
-    v.textContent = live ? 'LIVE' : (c.phone==='online' ? 'video '+c.rtc : 'phone offline');
-    v.className='tag vid '+(live?'live':(c.phone==='online'?'on':'off'));
-    const h=t.querySelector('.head'); h.textContent='head '+c.head; h.className='tag head '+(c.head==='online'?'on':'off');
-    t.querySelector('.empty').style.display = live ? 'none':'flex';
-    const s=c.state;
-    t.querySelector('.pos').textContent = s ? `pan ${s.pan.toFixed(1)}°  tilt ${s.tilt.toFixed(1)}°` : '';
-    t.querySelector('.bat').textContent = s ? `${s.bat.toFixed(2)} V${s.batLow?' LOW':''}` : '';
-  });
-  const c=C[sel], s=c.state;
-  $('selTitle').textContent = cfg.names[sel]||('Campus '+c.n);
+function tile(i) {
+  return $('tile0');
+}
+
+function render() {
+
+  const c = C[0];
+  const t = tile(0);
+
+  t.querySelector('.name').textContent = cfg.names[0] || 'Campus 1';
+
+  const v = t.querySelector('.vid');
+  const live = c.rtc === 'connected';
+
+  v.textContent = live
+    ? 'LIVE'
+    : (c.phone === 'online' ? 'video '+c.rtc : 'phone offline');
+
+  v.className = 'tag vid ' + (
+    live ? 'live' : (c.phone === 'online' ? 'on' : 'off')
+  );
+
+  const h = t.querySelector('.head');
+  h.textContent = 'head '+c.head;
+  h.className = 'tag head '+(c.head === 'online' ? 'on' : 'off');
+
+  t.querySelector('.empty').style.display = live ? 'none':'flex';
+
+  const s = c.state;
+
+  t.querySelector('.pos').textContent = s
+    ? `pan ${s.pan.toFixed(1)}°  tilt ${s.tilt.toFixed(1)}°`
+    : '';
+
+  t.querySelector('.bat').textContent = s
+    ? `${s.bat.toFixed(2)} V${s.batLow?' LOW':''}`
+    : '';
+
+  $('selTitle').textContent = cfg.names[0] || 'Campus 1';
+
   $('stat').innerHTML = s ? `
     <span>Head</span><span>${c.head}${s.moving?' · moving':''}</span>
     <span>Position</span><span>pan ${s.pan.toFixed(1)}°, tilt ${s.tilt.toFixed(1)}°</span>
     <span>Battery</span><span style="color:${s.batLow?'var(--bad)':'inherit'}">${s.bat.toFixed(2)} V</span>
     <span>Motors</span><span>${s.enabled?'holding':'released'} · ${s.speed}</span>
     <span>Wi-Fi</span><span>${s.rssi} dBm</span>
-    <span>Phone</span><span>${c.phone}, video ${c.rtc}${c.info?` · ${c.info.width}x${c.info.height}`:''}</span>`
-    : `<span>Head</span><span>${c.head}</span><span>Phone</span><span>${c.phone}, video ${c.rtc}</span>`;
-  if(s){ $('speed').value=s.speed; $('btnRelease').textContent = s.enabled?'Release':'Hold'; }
-  const p=$('presets'); p.innerHTML='';
-  (c.presets||[]).forEach(pr=>{
-    const d=document.createElement('div'); d.className='preset';
-    const go=document.createElement('button'); go.textContent=`${pr.name}  (${pr.pan}°, ${pr.tilt}°)`; go.onclick=()=>cmd({cmd:'preset',name:pr.name});
-    const del=document.createElement('button'); del.textContent='✕'; del.title='Delete'; del.onclick=()=>cmd({cmd:'delete',name:pr.name});
-    d.append(go,del); p.appendChild(d);
+    <span>Phone</span><span>${c.phone}, video ${c.rtc}${c.info?` · ${c.info.width}x${c.info.height}`:''}</span>
+  ` : `
+    <span>Head</span><span>${c.head}</span>
+    <span>Phone</span><span>${c.phone}, video ${c.rtc}</span>
+  `;
+
+  if(s) {
+    $('speed').value = s.speed;
+    $('btnRelease').textContent = s.enabled ? 'Release':'Hold';
+  }
+
+  const p = $('presets');
+  p.innerHTML = '';
+
+  (c.presets || []).forEach(pr => {
+    const d = document.createElement('div');
+    d.className = 'preset';
+
+    const go = document.createElement('button');
+    go.textContent = `${pr.name} (${pr.pan}°, ${pr.tilt}°)`;
+    go.onclick = () => cmd({cmd:'preset',name:pr.name});
+
+    const del = document.createElement('button');
+    del.textContent = '✕';
+    del.title = 'Delete';
+    del.onclick = () => cmd({cmd:'delete',name:pr.name});
+
+    d.append(go,del);
+    p.appendChild(d);
   });
-  if(!c.presets||!c.presets.length) p.innerHTML='<p class="note">No presets yet.</p>';
-  const z=$('zoom'), zi=c.info&&c.info.zoom;
-  if(zi){ z.disabled=false; z.min=zi.min; z.max=zi.max; z.step=zi.step||0.1; if(!z.dataset.drag) z.value=c.info.zoomNow||zi.min; $('zoomVal').textContent=Number(z.value).toFixed(1)+'x'; }
-  else { z.disabled=true; $('zoomVal').textContent = c.phone==='online' ? '(not supported by this phone browser)' : ''; }
+
+  if(!c.presets || !c.presets.length) {
+    p.innerHTML = '<p class="note">No presets yet.</p>';
+  }
+
+  const z = $('zoom');
+  const zi = c.info && c.info.zoom;
+
+  if(zi) {
+    z.disabled = false;
+    z.min = zi.min;
+    z.max = zi.max;
+    z.step = zi.step || 0.1;
+
+    if(!z.dataset.drag) z.value = c.info.zoomNow || zi.min;
+
+    $('zoomVal').textContent = Number(z.value).toFixed(1)+'x';
+  } else {
+    z.disabled = true;
+    $('zoomVal').textContent =
+      c.phone === 'online'
+        ? '(not supported by this phone browser)'
+        : '';
+  }
 }
 
-// ---------------------------------------------------------------- MQTT
-let client=null;
-function pill(txt,cls){ const p=$('pill'); p.textContent=txt; p.className='pill '+(cls||''); }
-function connect(){
-  if(client){ try{client.end(true);}catch(e){} client=null; }
-  if(!cfg.url){ pill('set up in Settings'); return; }
+// --------------------------------------------------
+// MQTT CONNECTION
+// --------------------------------------------------
+
+let client = null;
+
+function pill(txt,cls) {
+  const p = $('pill');
+  p.textContent = txt;
+  p.className = 'pill '+(cls||'');
+}
+
+function connect() {
+
+  if(client) {
+    try { client.end(true); } catch(e) {}
+    client = null;
+  }
+
+  if(!cfg.url) {
+    pill('set up in Settings');
+    return;
+  }
+
   pill('connecting…');
-  client = mqtt.connect(cfg.url,{username:cfg.user,password:cfg.pass,clientId:'campuscam-'+myId,clean:true,reconnectPeriod:3000,connectTimeout:10000});
-  client.on('connect',()=>{
-    pill('connected','on');
-    client.subscribe(C.flatMap(c=>[`campus${c.n}/cam/state`,`campus${c.n}/cam/presets`,`campus${c.n}/cam/status`,`campus${c.n}/video/status`,`campus${c.n}/video/info`,`campus${c.n}/video/to-console/${myId}`]));
-    C.forEach(c=>{ if(c.phone==='online') call(c); });
+
+  client = mqtt.connect(cfg.url,{
+    username:cfg.user,
+    password:cfg.pass,
+    clientId:'campuscam-'+myId,
+    clean:true,
+    reconnectPeriod:3000,
+    connectTimeout:10000
   });
-  client.on('reconnect',()=>pill('reconnecting…'));
-  client.on('close',()=>pill('not connected'));
-  client.on('error',e=>pill('error: '+(e.message||e),'err'));
+
+  client.on('connect',() => {
+
+    pill('connected','on');
+
+    client.subscribe([
+      'campus1/cam/state',
+      'campus1/cam/presets',
+      'campus1/cam/status',
+      'campus1/video/status',
+      'campus1/video/info',
+      `campus1/video/to-console/${myId}`
+    ]);
+
+    if(C[0].phone === 'online') call(C[0]);
+
+  });
+
+  client.on('reconnect',() => pill('reconnecting…'));
+  client.on('close',() => pill('not connected'));
+  client.on('error',e => pill('error: '+(e.message||e),'err'));
   client.on('message',onMsg);
 }
-function pub(topic,obj,retain){ if(client&&client.connected) client.publish(topic, typeof obj==='string'?obj:JSON.stringify(obj),{qos:0,retain:!!retain}); }
-function cmd(o,i=sel){ pub(`campus${C[i].n}/cam/cmd`, o); }
 
-function onMsg(topic,buf){
-  const m = topic.match(/^campus(\d)\/(cam|video)\/(.+)$/); if(!m) return;
-  const c = C[Number(m[1])-1]; if(!c) return;
-  const kind=m[2], sub=m[3], text=buf.toString();
-  if(kind==='cam'){
-    if(sub==='status') c.head=text;
-    else if(sub==='state'){ try{ c.state=JSON.parse(text); }catch(e){} }
-    else if(sub==='presets'){ try{ c.presets=JSON.parse(text).presets||[]; }catch(e){} }
+function pub(topic,obj,retain) {
+  if(client && client.connected) {
+    client.publish(
+      topic,
+      typeof obj === 'string' ? obj : JSON.stringify(obj),
+      {qos:0,retain:!!retain}
+    );
+  }
+}
+
+function cmd(o) {
+  pub('campus1/cam/cmd',o);
+}
+
+// --------------------------------------------------
+// MQTT MESSAGE HANDLER
+// --------------------------------------------------
+
+function onMsg(topic,buf) {
+
+  const m = topic.match(/^campus1\/(cam|video)\/(.+)$/);
+  if(!m) return;
+
+  const c = C[0];
+  const kind = m[1];
+  const sub = m[2];
+  const text = buf.toString();
+
+  if(kind === 'cam') {
+
+    if(sub === 'status') {
+      c.head = text;
+    }
+
+    else if(sub === 'state') {
+      try { c.state = JSON.parse(text); } catch(e) {}
+    }
+
+    else if(sub === 'presets') {
+      try { c.presets = JSON.parse(text).presets || []; } catch(e) {}
+    }
+
   } else {
-    if(sub==='status'){ const was=c.phone; c.phone=text; if(text==='online' && was!=='online') call(c); if(text!=='online') hangup(c); }
-    else if(sub==='info'){ try{ c.info=JSON.parse(text); }catch(e){} }
-    else if(sub.startsWith('to-console/')){ try{ signal(c, JSON.parse(text)); }catch(e){ console.warn(e); } }
+
+    if(sub === 'status') {
+      const was = c.phone;
+      c.phone = text;
+
+      if(text === 'online' && was !== 'online') call(c);
+      if(text !== 'online') hangup(c);
+    }
+
+    else if(sub === 'info') {
+      try { c.info = JSON.parse(text); } catch(e) {}
+    }
+
+    else if(sub.startsWith('to-console/')) {
+      try { signal(c,JSON.parse(text)); } catch(e) {
+        console.warn(e);
+      }
+    }
   }
+
   render();
 }
 
-// ---------------------------------------------------------------- WebRTC (console side)
-function hangup(c){ if(c.pc){ try{c.pc.close();}catch(e){} } c.pc=null; c.rtc='—'; const v=tile(c.n-1).querySelector('video'); v.srcObject=null; }
-function call(c){
+// --------------------------------------------------
+// WEBRTC VIDEO
+// --------------------------------------------------
+
+function hangup(c) {
+
+  if(c.pc) {
+    try { c.pc.close(); } catch(e) {}
+  }
+
+  c.pc = null;
+  c.rtc = '—';
+
+  tile(0).querySelector('video').srcObject = null;
+}
+
+function call(c) {
+
   hangup(c);
-  const pc = new RTCPeerConnection({iceServers:iceServers()});
-  c.pc=pc; c.rtc='connecting';
-  pc.ontrack = e => { c.stream=e.streams[0]; tile(c.n-1).querySelector('video').srcObject=c.stream; };
-  pc.onicecandidate = e => { if(e.candidate) pub(`campus${c.n}/video/to-phone`,{type:'ice',from:myId,candidate:e.candidate}); };
-  pc.onconnectionstatechange = () => { if(c.pc!==pc) return; c.rtc=pc.connectionState; render(); if(pc.connectionState==='failed') setTimeout(()=>{ if(c.pc===pc && c.phone==='online') call(c); },4000); };
-  pub(`campus${c.n}/video/to-phone`,{type:'call',from:myId});
+
+  const pc = new RTCPeerConnection({
+    iceServers:iceServers()
+  });
+
+  c.pc = pc;
+  c.rtc = 'connecting';
+
+  pc.ontrack = e => {
+    c.stream = e.streams[0];
+    tile(0).querySelector('video').srcObject = c.stream;
+  };
+
+  pc.onicecandidate = e => {
+    if(e.candidate) {
+      pub('campus1/video/to-phone',{
+        type:'ice',
+        from:myId,
+        candidate:e.candidate
+      });
+    }
+  };
+
+  pc.onconnectionstatechange = () => {
+
+    if(c.pc !== pc) return;
+
+    c.rtc = pc.connectionState;
+    render();
+
+    if(pc.connectionState === 'failed') {
+      setTimeout(() => {
+        if(c.pc === pc && c.phone === 'online') call(c);
+      },4000);
+    }
+  };
+
+  pub('campus1/video/to-phone',{
+    type:'call',
+    from:myId
+  });
+
   render();
 }
-function signal(c,msg){ const pc=c.pc; if(!pc) return; pc._q=(pc._q||Promise.resolve()).then(()=>handleSignal(pc,c,msg)).catch(e=>console.warn(e)); }
-async function handleSignal(pc,c,msg){
-  if(c.pc!==pc) return;
-  if(msg.type==='offer'){
-    await pc.setRemoteDescription({type:'offer',sdp:msg.sdp});
-    const ans = await pc.createAnswer(); await pc.setLocalDescription(ans);
-    pub(`campus${c.n}/video/to-phone`,{type:'answer',from:myId,sdp:pc.localDescription.sdp});
-  } else if(msg.type==='ice' && msg.candidate){
-    try{ await pc.addIceCandidate(msg.candidate); }catch(e){}
+
+function signal(c,msg) {
+  const pc = c.pc;
+  if(!pc) return;
+
+  pc._q = (pc._q || Promise.resolve())
+    .then(() => handleSignal(pc,c,msg))
+    .catch(e => console.warn(e));
+}
+
+async function handleSignal(pc,c,msg) {
+
+  if(c.pc !== pc) return;
+
+  if(msg.type === 'offer') {
+
+    await pc.setRemoteDescription({
+      type:'offer',
+      sdp:msg.sdp
+    });
+
+    const ans = await pc.createAnswer();
+    await pc.setLocalDescription(ans);
+
+    pub('campus1/video/to-phone',{
+      type:'answer',
+      from:myId,
+      sdp:pc.localDescription.sdp
+    });
+
+  } else if(msg.type === 'ice' && msg.candidate) {
+
+    try {
+      await pc.addIceCandidate(msg.candidate);
+    } catch(e) {}
   }
 }
 
-// ---------------------------------------------------------------- joystick
-const joy=$('joy'), knob=$('knob'); let jx=0, jy=0, dragging=false, joyTimer=null;
-function setKnob(x,y){ knob.style.left=(70+x*70)+'px'; knob.style.top=(70-y*70)+'px'; }
-function joyMove(e){
-  const r=joy.getBoundingClientRect(); let x=(e.clientX-r.left-r.width/2)/(r.width/2-30); let y=-(e.clientY-r.top-r.height/2)/(r.height/2-30);
-  const L=Math.hypot(x,y); if(L>1){x/=L;y/=L;} jx=+x.toFixed(2); jy=+y.toFixed(2); setKnob(jx,jy);
-}
-joy.addEventListener('pointerdown',e=>{ dragging=true; joy.setPointerCapture(e.pointerId); joyMove(e); sendJoy(); joyTimer=setInterval(sendJoy,200); });
-joy.addEventListener('pointermove',e=>{ if(dragging) joyMove(e); });
-const joyEnd=()=>{ if(!dragging) return; dragging=false; clearInterval(joyTimer); jx=jy=0; setKnob(0,0); cmd({cmd:'stop'}); };
-joy.addEventListener('pointerup',joyEnd); joy.addEventListener('pointercancel',joyEnd);
-function sendJoy(){ cmd({cmd:'joy',x:jx,y:jy}); }
+// --------------------------------------------------
+// JOYSTICK
+// --------------------------------------------------
 
-// keyboard: arrows nudge, space stops
-document.addEventListener('keydown',e=>{
-  if(e.target.tagName==='INPUT') return;
-  const k={ArrowLeft:[-5,0],ArrowRight:[5,0],ArrowUp:[0,2],ArrowDown:[0,-2]}[e.key];
-  if(k){ e.preventDefault(); cmd({cmd:'nudge',pan:k[0],tilt:k[1]}); }
-  if(e.key===' '){ e.preventDefault(); cmd({cmd:'stop'}); }
-  if(['1','2','3','4'].includes(e.key)) select(Number(e.key)-1);
+const joy = $('joy');
+const knob = $('knob');
+
+let jx = 0;
+let jy = 0;
+let dragging = false;
+let joyTimer = null;
+
+function setKnob(x,y) {
+  knob.style.left = (70+x*70)+'px';
+  knob.style.top = (70-y*70)+'px';
+}
+
+function joyMove(e) {
+
+  const r = joy.getBoundingClientRect();
+
+  let x = (e.clientX-r.left-r.width/2)/(r.width/2-30);
+  let y = -(e.clientY-r.top-r.height/2)/(r.height/2-30);
+
+  const L = Math.hypot(x,y);
+
+  if(L > 1) {
+    x /= L;
+    y /= L;
+  }
+
+  jx = +x.toFixed(2);
+  jy = +y.toFixed(2);
+
+  setKnob(jx,jy);
+}
+
+joy.addEventListener('pointerdown',e => {
+  dragging = true;
+  joy.setPointerCapture(e.pointerId);
+  joyMove(e);
+  sendJoy();
+  joyTimer = setInterval(sendJoy,200);
 });
 
-// ---------------------------------------------------------------- buttons
-document.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>{ const [p,t]=b.dataset.n.split(',').map(Number); cmd({cmd:'nudge',pan:p,tilt:t}); });
-$('btnHome').onclick=()=>cmd({cmd:'home'});
-$('btnStop').onclick=()=>cmd({cmd:'stop'});
-$('btnZero').onclick=()=>cmd({cmd:'zero'});
-$('btnRelease').onclick=()=>{ const s=C[sel].state; cmd({cmd: s&&!s.enabled ? 'hold':'release'}); };
-$('speed').onchange=e=>cmd({cmd:'speed',value:e.target.value});
-$('btnSave').onclick=()=>{ const n=$('presetName').value.trim(); if(/^[A-Za-z0-9_-]{1,10}$/.test(n)){ cmd({cmd:'save',name:n}); $('presetName').value=''; } else $('presetName').focus(); };
-const zoom=$('zoom');
-zoom.oninput=()=>{ zoom.dataset.drag=1; $('zoomVal').textContent=Number(zoom.value).toFixed(1)+'x'; pub(`campus${C[sel].n}/video/to-phone`,{type:'zoom',value:Number(zoom.value)}); };
-zoom.onchange=()=>{ delete zoom.dataset.drag; };
-$('btnFlip').onclick=()=>pub(`campus${C[sel].n}/video/to-phone`,{type:'flip'});
-$('btnRecall').onclick=()=>call(C[sel]);
+joy.addEventListener('pointermove',e => {
+  if(dragging) joyMove(e);
+});
 
-// ---------------------------------------------------------------- record / snapshot
-let rec=null, chunks=[], recName='';
-function download(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},2000); }
-function stamp(){ return new Date().toISOString().slice(0,19).replace(/[:T]/g,'-'); }
-$('btnRec').onclick=()=>{
-  if(rec){ rec.stop(); return; }
-  const c=C[sel]; if(!c.stream){ $('recNote').textContent='No live video on this campus.'; return; }
-  const type=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(t=>MediaRecorder.isTypeSupported(t));
-  chunks=[]; recName=`${(cfg.names[sel]||'campus'+c.n).replace(/\W+/g,'_')}_${stamp()}.webm`;
-  rec=new MediaRecorder(c.stream,{mimeType:type, videoBitsPerSecond:4_000_000});
-  rec.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); };
-  rec.onstop=()=>{ download(new Blob(chunks,{type:'video/webm'}),recName); rec=null; $('btnRec').textContent='● Record'; $('btnRec').classList.remove('rec'); $('recNote').textContent='Saved '+recName; };
-  rec.start(1000); $('btnRec').textContent='■ Stop recording'; $('btnRec').classList.add('rec'); $('recNote').textContent='Recording '+(cfg.names[sel]||'')+'… keep this tab in front.';
-};
-$('btnSnap').onclick=()=>{
-  const v=tile(sel).querySelector('video'); if(!v.videoWidth){ $('recNote').textContent='No live video on this campus.'; return; }
-  const cv=document.createElement('canvas'); cv.width=v.videoWidth; cv.height=v.videoHeight; cv.getContext('2d').drawImage(v,0,0);
-  cv.toBlob(b=>download(b,`snapshot_${C[sel].n}_${stamp()}.jpg`),'image/jpeg',0.92);
+const joyEnd = () => {
+
+  if(!dragging) return;
+
+  dragging = false;
+  clearInterval(joyTimer);
+
+  jx = jy = 0;
+  setKnob(0,0);
+
+  cmd({cmd:'stop'});
 };
 
-// ---------------------------------------------------------------- settings dialog
-function phoneLink(i){
-  const base = location.href.split('#')[0].replace(/console\.html.*$/,'phone.html');
-  const data = {url:cfg.url,user:cfg.user,pass:cfg.pass,campus:i+1,name:cfg.names[i],turn:cfg.turn};
-  const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(data)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-  return base + '#cfg=' + b64;
+joy.addEventListener('pointerup',joyEnd);
+joy.addEventListener('pointercancel',joyEnd);
+
+function sendJoy() {
+  cmd({cmd:'joy',x:jx,y:jy});
 }
-function fillLinks(){
-  const L=$('links'); L.innerHTML='';
-  [0,1,2,3].forEach(i=>{
-    const r=document.createElement('div'); r.className='row'; r.style.marginBottom='6px';
-    const inp=document.createElement('input'); inp.readOnly=true; inp.value=phoneLink(i); inp.style.flex='1';
-    const b=document.createElement('button'); b.textContent='Copy '+(i+1);
-    b.onclick=async()=>{ try{ await navigator.clipboard.writeText(inp.value); b.textContent='Copied'; }catch(e){ inp.select(); b.textContent='Select + copy'; } };
-    r.append(inp,b); L.appendChild(r);
+
+// --------------------------------------------------
+// KEYBOARD CONTROLS
+// --------------------------------------------------
+
+document.addEventListener('keydown',e => {
+
+  if(e.target.tagName === 'INPUT') return;
+
+  const k = {
+    ArrowLeft:[-5,0],
+    ArrowRight:[5,0],
+    ArrowUp:[0,2],
+    ArrowDown:[0,-2]
+  }[e.key];
+
+  if(k) {
+    e.preventDefault();
+    cmd({cmd:'nudge',pan:k[0],tilt:k[1]});
+  }
+
+  if(e.key === ' ') {
+    e.preventDefault();
+    cmd({cmd:'stop'});
+  }
+});
+
+// --------------------------------------------------
+// BUTTON CONTROLS
+// --------------------------------------------------
+
+document.querySelectorAll('[data-n]').forEach(b => {
+
+  b.onclick = () => {
+    const [p,t] = b.dataset.n.split(',').map(Number);
+    cmd({cmd:'nudge',pan:p,tilt:t});
+  };
+
+});
+
+$('btnHome').onclick = () => cmd({cmd:'home'});
+$('btnStop').onclick = () => cmd({cmd:'stop'});
+$('btnZero').onclick = () => cmd({cmd:'zero'});
+
+$('btnRelease').onclick = () => {
+  const s = C[0].state;
+  cmd({cmd:s && !s.enabled ? 'hold':'release'});
+};
+
+$('speed').onchange = e => {
+  cmd({cmd:'speed',value:e.target.value});
+};
+
+$('btnSave').onclick = () => {
+
+  const n = $('presetName').value.trim();
+
+  if(/^[A-Za-z0-9_-]{1,10}$/.test(n)) {
+    cmd({cmd:'save',name:n});
+    $('presetName').value = '';
+  } else {
+    $('presetName').focus();
+  }
+};
+
+// --------------------------------------------------
+// PHONE CAMERA CONTROLS
+// --------------------------------------------------
+
+const zoom = $('zoom');
+
+zoom.oninput = () => {
+
+  zoom.dataset.drag = 1;
+
+  $('zoomVal').textContent =
+    Number(zoom.value).toFixed(1)+'x';
+
+  pub('campus1/video/to-phone',{
+    type:'zoom',
+    value:Number(zoom.value)
   });
-}
-$('btnSettings').onclick=()=>{
-  $('sUrl').value=cfg.url; $('sUser').value=cfg.user; $('sPass').value=cfg.pass;
-  [1,2,3,4].forEach(n=>$('n'+n).value=cfg.names[n-1]);
-  $('tUrl').value=cfg.turn.url; $('tUser').value=cfg.turn.user; $('tPass').value=cfg.turn.pass;
-  fillLinks(); $('dlg').showModal();
-};
-$('dlgClose').onclick=()=>$('dlg').close();
-$('dlgSave').onclick=()=>{
-  cfg.url=$('sUrl').value.trim(); cfg.user=$('sUser').value.trim(); cfg.pass=$('sPass').value;
-  cfg.names=[1,2,3,4].map(n=>$('n'+n).value.trim()||('Campus '+n));
-  cfg.turn={url:$('tUrl').value.trim(),user:$('tUser').value.trim(),pass:$('tPass').value};
-  save(); fillLinks(); $('dlg').close(); render(); connect();
 };
 
-render(); connect();
-if(!cfg.url) $('btnSettings').click();
+zoom.onchange = () => {
+  delete zoom.dataset.drag;
+};
+
+$('btnFlip').onclick = () => {
+  pub('campus1/video/to-phone',{type:'flip'});
+};
+
+$('btnRecall').onclick = () => {
+  call(C[0]);
+};
+
+// --------------------------------------------------
+// RECORDING AND SNAPSHOT
+// --------------------------------------------------
+
+let rec = null;
+let chunks = [];
+let recName = '';
+
+function download(blob,name) {
+
+  const a = document.createElement('a');
+
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+
+  document.body.appendChild(a);
+  a.click();
+
+  setTimeout(() => {
+    URL.revokeObjectURL(a.href);
+    a.remove();
+  },2000);
+}
+
+function stamp() {
+  return new Date().toISOString()
+    .slice(0,19)
+    .replace(/[:T]/g,'-');
+}
+
+$('btnRec').onclick = () => {
+
+  if(rec) {
+    rec.stop();
+    return;
+  }
+
+  const c = C[0];
+
+  if(!c.stream) {
+    $('recNote').textContent = 'No live video on Campus 1.';
+    return;
+  }
+
+  const type = [
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm'
+  ].find(t => MediaRecorder.isTypeSupported(t));
+
+  chunks = [];
+
+  recName =
+    `${(cfg.names[0]||'Campus1').replace(/\W+/g,'_')}_${stamp()}.webm`;
+
+  rec = new MediaRecorder(c.stream,{
+    mimeType:type,
+    videoBitsPerSecond:4000000
+  });
+
+  rec.ondataavailable = e => {
+    if(e.data.size) chunks.push(e.data);
+  };
+
+  rec.onstop = () => {
+
+    download(
+      new Blob(chunks,{type:'video/webm'}),
+      recName
+    );
+
+    rec = null;
+
+    $('btnRec').textContent = '● Record';
+    $('btnRec').classList.remove('rec');
+    $('recNote').textContent = 'Saved '+recName;
+  };
+
+  rec.start(1000);
+
+  $('btnRec').textContent = '■ Stop recording';
+  $('btnRec').classList.add('rec');
+
+  $('recNote').textContent = 'Recording Campus 1… keep this tab in front.';
+};
+
+$('btnSnap').onclick = () => {
+
+  const v = tile(0).querySelector('video');
+
+  if(!v.videoWidth) {
+    $('recNote').textContent = 'No live video on Campus 1.';
+    return;
+  }
+
+  const cv = document.createElement('canvas');
+
+  cv.width = v.videoWidth;
+  cv.height = v.videoHeight;
+
+  cv.getContext('2d').drawImage(v,0,0);
+
+  cv.toBlob(b => {
+    if(b) download(b,`snapshot_Campus1_${stamp()}.jpg`);
+  },'image/jpeg',0.92);
+};
+
+// --------------------------------------------------
+// PHONE SETUP LINK
+// --------------------------------------------------
+
+function phoneLink() {
+
+  const base = location.href
+    .split('#')[0]
+    .replace(/console\.html.*$/,'phone.html');
+
+  const data = {
+    url:cfg.url,
+    user:cfg.user,
+    pass:cfg.pass,
+    campus:1,
+    name:cfg.names[0],
+    turn:cfg.turn
+  };
+
+  const b64 = btoa(
+    unescape(encodeURIComponent(JSON.stringify(data)))
+  )
+  .replace(/\+/g,'-')
+  .replace(/\//g,'_')
+  .replace(/=+$/,'');
+
+  return base+'#cfg='+b64;
+}
+
+function fillLinks() {
+
+  const L = $('links');
+  L.innerHTML = '';
+
+  const r = document.createElement('div');
+  r.className = 'row';
+  r.style.marginBottom = '6px';
+
+  const inp = document.createElement('input');
+  inp.readOnly = true;
+  inp.value = phoneLink();
+  inp.style.flex = '1';
+
+  const b = document.createElement('button');
+  b.textContent = 'Copy Campus 1 link';
+
+  b.onclick = async () => {
+
+    try {
+      await navigator.clipboard.writeText(inp.value);
+      b.textContent = 'Copied';
+    } catch(e) {
+      inp.select();
+      b.textContent = 'Select + copy';
+    }
+  };
+
+  r.append(inp,b);
+  L.appendChild(r);
+}
+
+// --------------------------------------------------
+// SETTINGS DIALOG
+// --------------------------------------------------
+
+$('btnSettings').onclick = () => {
+
+  $('sUrl').value = cfg.url;
+  $('sUser').value = cfg.user;
+  $('sPass').value = cfg.pass;
+
+  $('n1').value = cfg.names[0] || 'Campus 1';
+
+  $('tUrl').value = cfg.turn.url;
+  $('tUser').value = cfg.turn.user;
+  $('tPass').value = cfg.turn.pass;
+
+  fillLinks();
+  $('dlg').showModal();
+};
+
+$('dlgClose').onclick = () => $('dlg').close();
+
+$('dlgSave').onclick = () => {
+
+  cfg.url = $('sUrl').value.trim();
+  cfg.user = $('sUser').value.trim();
+  cfg.pass = $('sPass').value;
+
+  cfg.names = [
+    $('n1').value.trim() || 'Campus 1'
+  ];
+
+  cfg.turn = {
+    url:$('tUrl').value.trim(),
+    user:$('tUser').value.trim(),
+    pass:$('tPass').value
+  };
+
+  save();
+  fillLinks();
+  $('dlg').close();
+
+  render();
+  connect();
+};
+
+// --------------------------------------------------
+// START
+// --------------------------------------------------
+
+render();
+connect();
+
+if(!cfg.url) {
+  $('btnSettings').click();
+}
+
 </script>
 </body>
 </html>
