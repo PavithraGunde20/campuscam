@@ -602,6 +602,7 @@ function render() {
     <span>Position</span><span>pan ${s.pan.toFixed(1)}°, tilt ${s.tilt.toFixed(1)}°</span>
     ${hasBat ? `<span>Battery</span><span style="color:${s.batLow?'var(--bad)':'inherit'}">${s.bat.toFixed(2)} V</span>` : ''}
     <span>Speed</span><span>${s.speed} °/s</span>
+    ${s.fault ? `<span style="color:var(--bad)">Fault</span><span style="color:var(--bad);font-weight:600">${s.fault}</span>` : ''}
     <span>Wi-Fi</span><span>${s.rssi} dBm</span>
     <span>Phone</span><span>${c.phone}, video ${c.rtc}${c.info?` · ${c.info.width}x${c.info.height}`:''}</span>
   ` : `
