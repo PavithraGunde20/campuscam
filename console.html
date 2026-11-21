@@ -519,7 +519,9 @@ function render() {
     ? `pan ${s.pan.toFixed(1)}°  tilt ${s.tilt.toFixed(1)}°`
     : '';
 
-  t.querySelector('.bat').textContent = s
+  const hasBat = s && typeof s.bat === 'number';
+
+  t.querySelector('.bat').textContent = hasBat
     ? `${s.bat.toFixed(2)} V${s.batLow?' LOW':''}`
     : '';
 
@@ -528,7 +530,7 @@ function render() {
   $('stat').innerHTML = s ? `
     <span>Head</span><span>${c.head}${s.moving?' · moving':''}</span>
     <span>Position</span><span>pan ${s.pan.toFixed(1)}°, tilt ${s.tilt.toFixed(1)}°</span>
-    <span>Battery</span><span style="color:${s.batLow?'var(--bad)':'inherit'}">${s.bat.toFixed(2)} V</span>
+    ${hasBat ? `<span>Battery</span><span style="color:${s.batLow?'var(--bad)':'inherit'}">${s.bat.toFixed(2)} V</span>` : ''}
     <span>Motors</span><span>${s.enabled?'holding':'released'} · ${s.speed}</span>
     <span>Wi-Fi</span><span>${s.rssi} dBm</span>
     <span>Phone</span><span>${c.phone}, video ${c.rtc}${c.info?` · ${c.info.width}x${c.info.height}`:''}</span>
