@@ -317,17 +317,15 @@ dialog input { width:100%; }
       <span></span><button data-n="0,-2">▼</button><span></span>
     </div>
 
-    <div class="row" style="margin-top:10px">
-      <select id="speed">
-        <option value="slow">Slow 12°/s</option>
-        <option value="medium" selected>Medium 35°/s</option>
-        <option value="fast">Fast 90°/s</option>
-      </select>
+    <label class="note" style="display:flex;justify-content:space-between;margin-top:12px">
+      <span>Speed</span><span id="speedVal">20 °/s</span>
+    </label>
+    <input id="speed" type="range" min="1" max="45" step="1" value="20">
 
-      <button id="btnStop" class="danger">Stop</button>
-      <button id="btnZero" title="Make current position 0, 0">Set zero</button>
-      <button id="btnRelease" title="Motor power off / on">Release</button>
-    </div>
+    <button id="btnStop" class="danger"
+            style="width:100%;margin-top:10px;padding:10px;font-weight:700">
+      ■ Stop all motors
+    </button>
 
     <h3>Presets</h3>
     <div id="presets"></div>
@@ -531,7 +529,7 @@ function render() {
     <span>Head</span><span>${c.head}${s.moving?' · moving':''}</span>
     <span>Position</span><span>pan ${s.pan.toFixed(1)}°, tilt ${s.tilt.toFixed(1)}°</span>
     ${hasBat ? `<span>Battery</span><span style="color:${s.batLow?'var(--bad)':'inherit'}">${s.bat.toFixed(2)} V</span>` : ''}
-    <span>Motors</span><span>${s.enabled?'holding':'released'} · ${s.speed}</span>
+    <span>Speed</span><span>${s.speed} °/s</span>
     <span>Wi-Fi</span><span>${s.rssi} dBm</span>
     <span>Phone</span><span>${c.phone}, video ${c.rtc}${c.info?` · ${c.info.width}x${c.info.height}`:''}</span>
   ` : `
@@ -540,8 +538,11 @@ function render() {
   `;
 
   if(s) {
-    $('speed').value = s.speed;
-    $('btnRelease').textContent = s.enabled ? 'Release':'Hold';
+    const sp = $('speed');
+    if(!sp.dataset.drag && typeof s.speed === 'number') {
+      sp.value = s.speed;
+      $('speedVal').textContent = s.speed+' °/s';
+    }
   }
 
   const p = $('presets');
@@ -924,15 +925,25 @@ document.querySelectorAll('[data-n]').forEach(b => {
 
 $('btnHome').onclick = () => cmd({cmd:'home'});
 $('btnStop').onclick = () => cmd({cmd:'stop'});
-$('btnZero').onclick = () => cmd({cmd:'zero'});
 
-$('btnRelease').onclick = () => {
-  const s = C[0].state;
-  cmd({cmd:s && !s.enabled ? 'hold':'release'});
+
+// speed slider: live while dragging (throttled), final value on release
+const speedEl = $('speed');
+let speedSent = 0;
+
+speedEl.oninput = () => {
+  speedEl.dataset.drag = 1;
+  $('speedVal').textContent = speedEl.value+' °/s';
+  const t = Date.now();
+  if(t-speedSent > 150) {
+    speedSent = t;
+    cmd({cmd:'speed',value:Number(speedEl.value)});
+  }
 };
 
-$('speed').onchange = e => {
-  cmd({cmd:'speed',value:e.target.value});
+speedEl.onchange = () => {
+  cmd({cmd:'speed',value:Number(speedEl.value)});
+  delete speedEl.dataset.drag;
 };
 
 $('btnSave').onclick = () => {
